@@ -15,16 +15,18 @@ use ratatui::{
     },
     Terminal,
 };
+
 fn main() -> Result<()> {
     //settings
-    const SIZE: usize = 500;
+    const SIZE: usize = 200;
     let background = 0;
     let cell = 1;
-    let update_speed = Duration::from_millis(25);
     let spawn_chance = 0.1;
     let cell_color = ratatui::style::Color::White;
+    let update_speed = Duration::from_millis(100);
 
     let mut matrix = [[background; SIZE]; SIZE];
+    let mut updated_points: Vec<(f64, f64, i8)> = vec![];
 
     //(row, column)
     let moves = [
@@ -54,6 +56,8 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     loop {
+        //TODO implement stored points to update, needed to add extra field to keep update
+        //type ie. dead or alive
         for row in 0..SIZE {
             for column in 0..SIZE {
                 //how many cells are around current cell
@@ -83,41 +87,39 @@ fn main() -> Result<()> {
                 //rules of life
                 //https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Rules
                 if counter < 2 || counter > 3 {
-                    matrix[row][column] = background;
+                    updated_points.push((row as f64, column as f64, background));
                 } else if counter == 3 {
-                    matrix[row][column] = cell;
+                    updated_points.push((row as f64, column as f64, cell));
                 }
             }
         }
-        // for row in matrix {
-        //     println!("{:?}", row);
-        // }
-        // println!("");
+
+        //Update matrix with new values
+        for _i in 0..updated_points.len() {
+            let (row, column, state): (f64, f64, i8) = updated_points
+                .pop()
+                .expect("Error occured when popping from stack.");
+            matrix[row as usize][column as usize] = state;
+        }
 
         terminal.draw(|frame| {
             let area = frame.size();
             let canvas = Canvas::default()
                 .block(Block::default())
                 .paint(|ctx| {
-                    let mut points: [(f64, f64); SIZE * SIZE] = [(0.0, 0.0); SIZE * SIZE];
+                    //
+                    let mut matrix_points: [(f64, f64); SIZE * SIZE] = [(0.0, 0.0); SIZE * SIZE];
                     let mut counter = 0;
                     for row in 0..SIZE {
                         for column in 0..SIZE {
                             if matrix[row][column] == cell {
-                                points[counter] = (column as f64, row as f64);
+                                matrix_points[counter] = (column as f64, row as f64);
                                 counter += 1;
-                                // ctx.draw(&Rectangle {
-                                //     x: column as f64,
-                                //     y: row as f64,
-                                //     width: 0.1,
-                                //     height: 0.1,
-                                //     color: ratatui::style::Color::White,
-                                // })
                             }
                         }
                     }
                     ctx.draw(&Points {
-                        coords: &points,
+                        coords: &matrix_points,
                         color: cell_color,
                     })
                 })
