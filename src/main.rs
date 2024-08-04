@@ -1,4 +1,12 @@
-use std::{io::stdout, io::Result, thread::sleep, time::Duration, usize};
+use clap::{error::ErrorFormatter, Parser};
+use std::{
+    env,
+    io::{stdout, Result},
+    process::exit,
+    thread::sleep,
+    time::Duration,
+    u8, usize,
+};
 
 use rand::Rng;
 use ratatui::{
@@ -16,12 +24,34 @@ use ratatui::{
     Terminal,
 };
 
+// fn valid_spawn_rate(s: f64) -> Result<f64, String> {
+//     if s <= 1.0 && s >= 0.0 {
+//         Ok(s)
+//     } else {
+//         //TODO: Fix this
+//         Err(String::from("Spawn rate not in range"))
+//     }
+// }
+///A Game Of Life simulator in the terminal.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    ///Speed of simulation in milliseconds
+    #[arg(short, long, default_value_t = 50)]
+    speed: u64,
+    ///Density of simulation, multiple of total allowable cells
+    #[arg(short, long, default_value_t = 2)]
+    density: usize,
+
+    ///Spawn rate of cells value between 0.0 - 1.0
+    #[arg(short, long, default_value_t = 0.05)]
+    rate: f64,
+}
+
 fn main() -> Result<()> {
-    //setup terminal
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
+    let args = Args::parse();
+
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
 
     let size = terminal
         .size()
@@ -29,14 +59,14 @@ fn main() -> Result<()> {
 
     //settings
     //used to increase point density
-    let multiplier = 5;
+    let multiplier = args.density;
     //used to keep aspect ratio
     let height = size.height as usize * multiplier;
     let width = size.width as usize * multiplier;
 
-    let spawn_chance = 0.1;
+    let spawn_chance = args.rate;
     let cell_color = ratatui::style::Color::White;
-    let update_speed = Duration::from_millis(100);
+    let update_speed = Duration::from_millis(args.speed);
 
     let background = 0;
     let cell = 1;
@@ -54,6 +84,11 @@ fn main() -> Result<()> {
         (1, 0),
         (1, 1),
     ];
+
+    //setup terminal
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    terminal.clear()?;
 
     //init matrix with cells
     for row in 0..height {
