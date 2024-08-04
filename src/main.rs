@@ -17,15 +17,30 @@ use ratatui::{
 };
 
 fn main() -> Result<()> {
+    //setup terminal
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    terminal.clear()?;
+
+    let size = terminal
+        .size()
+        .expect("Unable to determine height and width of terminal.");
+
     //settings
-    const SIZE: usize = 200;
-    let background = 0;
-    let cell = 1;
+    //used to increase point density
+    let multiplier = 5;
+    //used to keep aspect ratio
+    let height = size.height as usize * multiplier;
+    let width = size.width as usize * multiplier;
+
     let spawn_chance = 0.1;
     let cell_color = ratatui::style::Color::White;
     let update_speed = Duration::from_millis(100);
 
-    let mut matrix = [[background; SIZE]; SIZE];
+    let background = 0;
+    let cell = 1;
+    let mut matrix = vec![vec![background; width]; height];
     let mut updated_points: Vec<(f64, f64, i8)> = vec![];
 
     //(row, column)
@@ -41,25 +56,18 @@ fn main() -> Result<()> {
     ];
 
     //init matrix with cells
-    for row in 0..SIZE {
-        for column in 0..SIZE {
+    for row in 0..height {
+        for column in 0..width {
             if rand::thread_rng().gen_bool(spawn_chance) {
                 matrix[row][column] = cell;
             }
         }
     }
 
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
-
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
-
     loop {
-        //TODO implement stored points to update, needed to add extra field to keep update
-        //type ie. dead or alive
-        for row in 0..SIZE {
-            for column in 0..SIZE {
+        //Calculate next state
+        for row in 0..height {
+            for column in 0..width {
                 //how many cells are around current cell
                 let mut counter = 0;
                 for (y, x) in moves {
@@ -68,13 +76,13 @@ fn main() -> Result<()> {
                     let next_column = column as i32 + x;
 
                     //if next move is out of bounds, don't update
-                    let row = if next_row < 0 || next_row as usize >= SIZE {
+                    let row = if next_row < 0 || next_row as usize >= height {
                         continue;
                     } else {
                         next_row as usize
                     };
 
-                    let column = if next_column < 0 || next_column as usize >= SIZE {
+                    let column = if next_column < 0 || next_column as usize >= width {
                         continue;
                     } else {
                         next_column as usize
@@ -96,7 +104,7 @@ fn main() -> Result<()> {
 
         //Update matrix with new values
         for _i in 0..updated_points.len() {
-            let (row, column, state): (f64, f64, i8) = updated_points
+            let (row, column, state) = updated_points
                 .pop()
                 .expect("Error occured when popping from stack.");
             matrix[row as usize][column as usize] = state;
@@ -108,10 +116,10 @@ fn main() -> Result<()> {
                 .block(Block::default())
                 .paint(|ctx| {
                     //
-                    let mut matrix_points: [(f64, f64); SIZE * SIZE] = [(0.0, 0.0); SIZE * SIZE];
+                    let mut matrix_points = vec![(0.0, 0.0); height * width];
                     let mut counter = 0;
-                    for row in 0..SIZE {
-                        for column in 0..SIZE {
+                    for row in 0..height {
+                        for column in 0..width {
                             if matrix[row][column] == cell {
                                 matrix_points[counter] = (column as f64, row as f64);
                                 counter += 1;
@@ -123,8 +131,8 @@ fn main() -> Result<()> {
                         color: cell_color,
                     })
                 })
-                .x_bounds([0.0, SIZE as f64])
-                .y_bounds([0.0, SIZE as f64]);
+                .x_bounds([0.0, width as f64])
+                .y_bounds([0.0, height as f64]);
 
             frame.render_widget(canvas, area);
         })?;
