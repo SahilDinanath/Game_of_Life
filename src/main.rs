@@ -1,8 +1,7 @@
 use clap::Parser;
 use std::{
-    io::{self, stdout, Result},
+    io::{stdout, Result},
     process::exit,
-    str::FromStr,
     thread::sleep,
     time::Duration,
     usize,
@@ -16,7 +15,6 @@ use ratatui::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    style::Stylize,
     widgets::{
         canvas::{Canvas, Points},
         Block,
