@@ -1,4 +1,5 @@
 # Game of Life CLI
+[Screencast from 2024-08-05 17-25-24.webm](https://github.com/user-attachments/assets/bd52e1e8-181f-45f4-99ff-db042c076dcb)
 
 A terminal-based implementation of Conway's Game of Life, allowing for customizable simulations through various command-line arguments.
 
