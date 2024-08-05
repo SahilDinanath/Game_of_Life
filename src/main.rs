@@ -37,11 +37,11 @@ struct Args {
     #[arg(short, long, default_value_t = 0.05)]
     rate: f64,
 
-    ///Color of cells. prefix: none or bright Values: red, green, blue, yellow, magenta, cyan, grey etc
+    ///Color of cells. prefix: none or bright. Values: red, green, blue, yellow, magenta, cyan, grey etc
     #[arg(short, long, default_value_t = ratatui::style::Color::White)]
     color: ratatui::style::Color,
 
-    ///Color of background. prefix: none or bright Values: red, green, blue, yellow, magenta, cyan, grey etc
+    ///Color of background. prefix: none or bright. Values: red, green, blue, yellow, magenta, cyan, grey etc
     #[arg(short, long, default_value_t = ratatui::style::Color::Black)]
     background_color: ratatui::style::Color,
 }
