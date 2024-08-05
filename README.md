@@ -67,4 +67,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## Acknowledgments
 
-Special thanks to Conway, [ratatui](https://github.com/ratatui/ratatui) and [clap](https://github.com/clap-rs/clap).
+Special thanks to Conway, [ratatui](https://github.com/ratatui-org/ratatui) and [clap](https://github.com/clap-rs/clap).
