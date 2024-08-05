@@ -16,6 +16,7 @@ use ratatui::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
+    style::Stylize,
     widgets::{
         canvas::{Canvas, Points},
         Block,
@@ -37,6 +38,14 @@ struct Args {
     ///Initial spawn rate of cells with probability between 0.0 - 1.0
     #[arg(short, long, default_value_t = 0.05)]
     rate: f64,
+
+    ///Color of cells. prefix: none or bright Values: red, green, blue, yellow, magenta, cyan, grey etc
+    #[arg(short, long, default_value_t = ratatui::style::Color::White)]
+    color: ratatui::style::Color,
+
+    ///Color of background. prefix: none or bright Values: red, green, blue, yellow, magenta, cyan, grey etc
+    #[arg(short, long, default_value_t = ratatui::style::Color::Black)]
+    background_color: ratatui::style::Color,
 }
 
 fn main() -> Result<()> {
@@ -53,7 +62,7 @@ fn main() -> Result<()> {
     let multiplier = if args.density > 0 && args.density <= 10 {
         args.density
     } else {
-        println!("Invalid cell density.");
+        println!("Invalid cell density. Range [1 - 10].");
         exit(1)
     };
 
@@ -64,12 +73,18 @@ fn main() -> Result<()> {
     let spawn_chance = if args.rate >= 0.0 && args.rate <= 1.0 {
         args.rate
     } else {
-        println!("Invalid spawn rate.");
+        println!("Invalid spawn rate. Range [0.0 - 1.0].");
         exit(1)
     };
 
-    let cell_color = ratatui::style::Color::White;
-    let update_speed = Duration::from_millis(args.speed);
+    let cell_color = args.color;
+    let background_color = args.background_color;
+    let update_speed = if args.speed > 0 && args.speed <= 1000 {
+        Duration::from_millis(args.speed)
+    } else {
+        println!("Invalid speed in ms. Range [1 - 1000].");
+        exit(1)
+    };
 
     let background = 0;
     let cell = 1;
@@ -103,6 +118,46 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     loop {
+        //draw first to display initial grid
+        terminal.draw(|frame| {
+            let area = frame.size();
+            let canvas = Canvas::default()
+                .background_color(background_color)
+                .block(Block::default())
+                .paint(|ctx| {
+                    //
+                    let mut matrix_points = vec![(0.0, 0.0); height * width];
+                    let mut counter = 0;
+                    for row in 0..height {
+                        for column in 0..width {
+                            if matrix[row][column] == cell {
+                                matrix_points[counter] = (column as f64, row as f64);
+                                counter += 1;
+                            }
+                        }
+                    }
+                    ctx.draw(&Points {
+                        coords: &matrix_points,
+                        color: cell_color,
+                    })
+                })
+                .x_bounds([0.0, width as f64])
+                .y_bounds([0.0, height as f64]);
+
+            frame.render_widget(canvas, area);
+        })?;
+
+        //read keyboard input to quit
+        if event::poll(std::time::Duration::from_millis(16))? {
+            if let event::Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                    break;
+                }
+            }
+        }
+        //sleep after display
+        sleep(update_speed);
+
         //Calculate next state
         for row in 0..height {
             for column in 0..width {
@@ -147,42 +202,6 @@ fn main() -> Result<()> {
                 .expect("Error occured when popping from stack.");
             matrix[row as usize][column as usize] = state;
         }
-
-        terminal.draw(|frame| {
-            let area = frame.size();
-            let canvas = Canvas::default()
-                .block(Block::default())
-                .paint(|ctx| {
-                    //
-                    let mut matrix_points = vec![(0.0, 0.0); height * width];
-                    let mut counter = 0;
-                    for row in 0..height {
-                        for column in 0..width {
-                            if matrix[row][column] == cell {
-                                matrix_points[counter] = (column as f64, row as f64);
-                                counter += 1;
-                            }
-                        }
-                    }
-                    ctx.draw(&Points {
-                        coords: &matrix_points,
-                        color: cell_color,
-                    })
-                })
-                .x_bounds([0.0, width as f64])
-                .y_bounds([0.0, height as f64]);
-
-            frame.render_widget(canvas, area);
-        })?;
-
-        if event::poll(std::time::Duration::from_millis(16))? {
-            if let event::Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                    break;
-                }
-            }
-        }
-        sleep(update_speed);
     }
 
     stdout().execute(LeaveAlternateScreen)?;

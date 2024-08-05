@@ -7,3 +7,7 @@ edition = "2021"
 clap = { version = "4.5.13", features = ["derive"] }
 rand = "0.8.5"
 ratatui = "0.27.0"
+
+[[bin]]
+name = "gol"
+path = "src/main.rs"
