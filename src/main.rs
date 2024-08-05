@@ -1,11 +1,11 @@
-use clap::{error::ErrorFormatter, Parser};
+use clap::Parser;
 use std::{
-    env,
-    io::{stdout, Result},
+    io::{self, stdout, Result},
     process::exit,
+    str::FromStr,
     thread::sleep,
     time::Duration,
-    u8, usize,
+    usize,
 };
 
 use rand::Rng;
@@ -16,7 +16,6 @@ use ratatui::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    style::Stylize,
     widgets::{
         canvas::{Canvas, Points},
         Block,
@@ -24,17 +23,9 @@ use ratatui::{
     Terminal,
 };
 
-// fn valid_spawn_rate(s: f64) -> Result<f64, String> {
-//     if s <= 1.0 && s >= 0.0 {
-//         Ok(s)
-//     } else {
-//         //TODO: Fix this
-//         Err(String::from("Spawn rate not in range"))
-//     }
-// }
 ///A Game Of Life simulator in the terminal.
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(name = "gol", version, about, long_about = None)]
 struct Args {
     ///Speed of simulation in milliseconds
     #[arg(short, long, default_value_t = 50)]
@@ -43,7 +34,7 @@ struct Args {
     #[arg(short, long, default_value_t = 2)]
     density: usize,
 
-    ///Spawn rate of cells value between 0.0 - 1.0
+    ///Initial spawn rate of cells with probability between 0.0 - 1.0
     #[arg(short, long, default_value_t = 0.05)]
     rate: f64,
 }
@@ -59,12 +50,24 @@ fn main() -> Result<()> {
 
     //settings
     //used to increase point density
-    let multiplier = args.density;
+    let multiplier = if args.density > 0 && args.density <= 10 {
+        args.density
+    } else {
+        println!("Invalid cell density.");
+        exit(1)
+    };
+
     //used to keep aspect ratio
     let height = size.height as usize * multiplier;
     let width = size.width as usize * multiplier;
 
-    let spawn_chance = args.rate;
+    let spawn_chance = if args.rate >= 0.0 && args.rate <= 1.0 {
+        args.rate
+    } else {
+        println!("Invalid spawn rate.");
+        exit(1)
+    };
+
     let cell_color = ratatui::style::Color::White;
     let update_speed = Duration::from_millis(args.speed);
 
@@ -85,11 +88,6 @@ fn main() -> Result<()> {
         (1, 1),
     ];
 
-    //setup terminal
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
-    terminal.clear()?;
-
     //init matrix with cells
     for row in 0..height {
         for column in 0..width {
@@ -98,6 +96,11 @@ fn main() -> Result<()> {
             }
         }
     }
+
+    //setup terminal
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    terminal.clear()?;
 
     loop {
         //Calculate next state
